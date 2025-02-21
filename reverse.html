@@ -13,7 +13,12 @@ audio {
 .controls {
 	display: flex;
 	align-items: flex-start;
-	gap: 60px;
+	gap: 40px;
+}
+
+.options {
+	border: 1px solid black;
+	padding: 2px;
 }
 
 #recordButton {
@@ -22,6 +27,7 @@ audio {
 	background-color: red;
 	color: white;
 	border: 0;
+	font-family: monospace;
 	border-radius: 6px;
 	display: flex;
 	line-height: 1.5;
@@ -54,13 +60,13 @@ audio {
 <h1>Reverse Voice Recorder</h1>
 <div class="controls">
 	<button id="recordButton" onclick="toggleRecord()"><span>⏺</span><span>Record</span></button>
-	<div>
+	<div class="options">
 		<input type="checkbox" id="autoPlay" name="autoPlay" checked />
 		<label for="autoPlay">Autoplay</label><br>
-		<input type="radio" id="html" name="playback" onchange="setPlaybackRate(1)" checked>
-		<label for="html">Speed: 100%</label><br>
-		<input type="radio" id="css" name="playback" onchange="setPlaybackRate(0.5)">
-		<label for="css">Speed: 50%</label><br>
+		<input type="radio" id="playback100" name="playback" onchange="setPlaybackRate(1)" checked>
+		<label for="playback100">Speed: 100%</label><br>
+		<input type="radio" id="playback50" name="playback" onchange="setPlaybackRate(0.5)">
+		<label for="playback50">Speed: 50%</label><br>
 	</div>
 </div>
 
@@ -84,9 +90,12 @@ const recordButton = document.getElementById('recordButton');
 const clips = document.getElementById('clips');
 const autoPlay = document.getElementById('autoPlay');
 
-let mediaRecorder;
-let isRecording = false;
-let fileIndex = 1;
+var mediaRecorder;
+var isRecording = false;
+var playbackRate;
+var fileIndex = 1;
+document.querySelector('input[name="playback"]:checked').onchange();
+
 
 function displayRecordButton() {
 	recordButton.innerHTML = isRecording
@@ -104,7 +113,8 @@ async function toggleRecord() {
 		let stream;
 		try {
 			stream = await navigator.mediaDevices.getUserMedia({audio: true});
-		} catch {
+			mediaRecorder = new MediaRecorder(stream);
+		} catch (e) {
 			displayAudio(null);
 			isRecording = fileIndex % 2 == 0;
 			displayRecordButton();
@@ -112,7 +122,6 @@ async function toggleRecord() {
 			console.log(autoPlay.checked);
 			return;
 		}
-		mediaRecorder = new MediaRecorder(stream);
 		mediaRecorder.start();
 		isRecording = true;
 		displayRecordButton();
@@ -158,6 +167,7 @@ function displayAudio(audioSrc) {
 
 	let audio = container.querySelector('audio');
 	audio.src = audioSrc;
+	audio.playbackRate = playbackRate;
 	
 	container.querySelector('.time').innerText = new Date().toLocaleString('en-US', {
 		hour: 'numeric',
@@ -167,8 +177,8 @@ function displayAudio(audioSrc) {
 	let downloadLink = container.querySelector('a');
 	let filename = `Reverse${fileIndex++}.wav`;
 	downloadLink.innerText = filename;
-	downloadLink.href = audioSrc;
 	downloadLink.download = filename;
+	downloadLink.href = audioSrc;
 	
 	container.querySelector('button').onclick = function() {
 		container.remove();
@@ -221,17 +231,18 @@ function shortcut(e) {
 		e.preventDefault();
 		toggleRecord();
 	} else if (e.key == '1') {
-		setPlaybackRate(1);
+		document.getElementById('playback100').click();
 	} else if (e.key == '2') {
-		setPlaybackRate(0.5);
+		document.getElementById('playback50').click();
 	} else if (e.key == 'p') {
 		clips.querySelector('audio').play();
 	}
 }
 
-function setPlaybackRate(rate) {
+function setPlaybackRate(newRate) {
+	playbackRate = newRate;
 	for (let audio of document.getElementsByTagName('audio')) {
-		audio.playbackRate = rate;
+		audio.playbackRate = playbackRate;
 	}
 }
 
