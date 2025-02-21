@@ -68,7 +68,7 @@ audio {
 
 <template id="template">
 	<div class="container">
-		<audio></audio>
+		<audio controls></audio>
 		<div>
 			<span class="time"></span>
 			<a></a>
@@ -158,7 +158,6 @@ function displayAudio(audioSrc) {
 
 	let audio = container.querySelector('audio');
 	audio.src = audioSrc;
-	audio.controls = true;
 	
 	container.querySelector('.time').innerText = new Date().toLocaleString('en-US', {
 		hour: 'numeric',
@@ -166,10 +165,9 @@ function displayAudio(audioSrc) {
 	});
 	
 	let downloadLink = container.querySelector('a');
-	let filename = `Reverse${fileIndex}.wav`;
+	let filename = `Reverse${fileIndex++}.wav`;
 	downloadLink.innerText = filename;
 	downloadLink.href = audioSrc;
-	fileIndex++;
 	downloadLink.download = filename;
 	
 	container.querySelector('button').onclick = function() {
