@@ -70,7 +70,12 @@ audio {
 	</div>
 </div>
 
-<div><div id="clips"></div></div>
+<div>
+	<!-- <canvas id="canvas" width="300" height="40"></canvas> -->
+	<div id="clips">
+
+	</div>
+</div>
 
 <template id="template">
 	<div class="container">
@@ -89,6 +94,7 @@ audio {
 const recordButton = document.getElementById('recordButton');
 const clips = document.getElementById('clips');
 const autoPlay = document.getElementById('autoPlay');
+
 
 var mediaRecorder;
 var isRecording = false;
