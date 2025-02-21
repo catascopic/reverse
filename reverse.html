@@ -10,45 +10,99 @@ audio {
 	display: block;
 }
 
-#record {
-	width: 8em;
+#recordButton {
+	font-size: 20pt;
+	width: 160px;
 	background-color: red;
 	color: white;
 	border: 0;
-	padding: 4px;
-	border-radius: 4px;
+	border-radius: 6px;
+	display: flex;
+	line-height: 1.5;
+}
+
+#recordButton>span:nth-child(1) {
+	flex: 1;
+}
+
+#recordButton>span:nth-child(2) {
+	flex: 3;
+}
+
+#clips {
+	margin-top: 20px;
+	display: inline-flex;
+	flex-direction: column;
+	gap: 8px;
+}
+
+.container button {
+	border-radius: 0;
+	float: right;
 }
 
 </style>
 </head>
 <body>
 
-<div class="container">
-	<h1>Reverse Voice Recorder</h1>
-	<button id="record" onclick="toggleRecord()">⏺ Record</button>
-	<div id="clips"></div>
-</div>
+
+<h1>Reverse Voice Recorder</h1>
+<button id="recordButton" onclick="toggleRecord()"><span>⏺</span><span>Record</span></button>
+<div><div id="clips"></div></div>
+
+<template id="template">
+	<div class="container">
+		<audio></audio>
+		<div>
+			<span class="time"></span>
+			<a></a>
+			<button>✖</button>
+		</div>
+	</div>
+</template>
 
 <script>
 
-const recordButton = document.getElementById('record');
+const recordButton = document.getElementById('recordButton');
 const clips = document.getElementById('clips');
 
 let mediaRecorder;
 let isRecording = false;
+let index = 1;
+
+function displayRecordButton() {
+	let symbol, text;
+	if (isRecording) {
+		symbol = '⏹';
+		text = 'Stop';
+	} else {
+		symbol = '⏺';
+		text = 'Record';
+	}
+	recordButton.innerHTML = `<span>${symbol}</span><span>${text}</span>`;
+}
 
 async function toggleRecord() {
 	if (isRecording) {
 		mediaRecorder.stop();
 		isRecording = false;
-		recordButton.textContent = "⏺ Record";
+		displayRecordButton();
 	} else {
 		let audioChunks = [];
-		let stream = await navigator.mediaDevices.getUserMedia({audio: true});
+		let stream;
+		try {
+			stream = await navigator.mediaDevices.getUserMedia({audio: true});
+		} catch {
+			displayAudio(null);
+			isRecording = index % 2 == 0;
+			displayRecordButton();
+			isRecording = false;
+			return;
+		}
 		mediaRecorder = new MediaRecorder(stream);
 		mediaRecorder.start();
 		isRecording = true;
-		recordButton.textContent = "⏹ Stop";
+		displayRecordButton();
 		mediaRecorder.ondataavailable = function(e) {
 			audioChunks.push(e.data);
 		};
@@ -78,31 +132,36 @@ async function reverseAudio(audioChunks) {
 
 	let renderedBuffer = await offlineContext.startRendering();
 	let audioSrc = URL.createObjectURL(bufferToWavBlob(renderedBuffer));
-	
-	let clipContainer = document.createElement('div');
-	
-	let audio = document.createElement('audio');
+
+	displayAudio(audioSrc).play();
+}
+
+function displayAudio(audioSrc) {
+	let template = document.getElementById('template');
+	let container = template.content.cloneNode(true).firstElementChild;
+
+	let audio = container.querySelector('audio');
 	audio.src = audioSrc;
 	audio.controls = true;
-	clipContainer.appendChild(audio);
 	
-	let downloadLink = document.createElement('a');
+	container.querySelector('.time').innerText = new Date().toLocaleString("en-US", {
+		hour: 'numeric',
+		minute: 'numeric',
+	});
+	
+	let downloadLink = container.querySelector('a');
+	let filename = `Reverse${index}.wav`;
+	downloadLink.innerText = filename;
 	downloadLink.href = audioSrc;
-	let filename = `${new Date().toISOString()}.wav`;
-	downloadLink.textContent = 'Download WAV';
+	index++;
 	downloadLink.download = filename;
-	clipContainer.appendChild(downloadLink);
 	
-	let deleteButton = document.createElement('button');
-	deleteButton.onclick = function() {
-		clipContainer.remove();
+	container.querySelector('button').onclick = function() {
+		container.remove();
 	};
-	deleteButton.textContent = '❌';
-	clipContainer.appendChild(deleteButton);
-	
-	clips.prepend(clipContainer)
-	
-	audio.play();
+
+	clips.prepend(container);
+	return audio;
 }
 
 function bufferToWavBlob(buffer) {
