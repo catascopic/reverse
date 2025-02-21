@@ -10,6 +10,12 @@ audio {
 	display: block;
 }
 
+.controls {
+	display: flex;
+	align-items: flex-start;
+	gap: 60px;
+}
+
 #recordButton {
 	font-size: 20pt;
 	width: 160px;
@@ -45,9 +51,19 @@ audio {
 </head>
 <body>
 
-
 <h1>Reverse Voice Recorder</h1>
-<button id="recordButton" onclick="toggleRecord()"><span>⏺</span><span>Record</span></button>
+<div class="controls">
+	<button id="recordButton" onclick="toggleRecord()"><span>⏺</span><span>Record</span></button>
+	<div>
+		<input type="checkbox" id="autoPlay" name="autoPlay" checked />
+		<label for="autoPlay">Autoplay</label><br>
+		<input type="radio" id="html" name="playback" onchange="setPlaybackRate(1)" checked>
+		<label for="html">Speed: 100%</label><br>
+		<input type="radio" id="css" name="playback" onchange="setPlaybackRate(0.5)">
+		<label for="css">Speed: 50%</label><br>
+	</div>
+</div>
+
 <div><div id="clips"></div></div>
 
 <template id="template">
@@ -62,24 +78,20 @@ audio {
 </template>
 
 <script>
+'use strict';
 
 const recordButton = document.getElementById('recordButton');
 const clips = document.getElementById('clips');
+const autoPlay = document.getElementById('autoPlay');
 
 let mediaRecorder;
 let isRecording = false;
-let index = 1;
+let fileIndex = 1;
 
 function displayRecordButton() {
-	let symbol, text;
-	if (isRecording) {
-		symbol = '⏹';
-		text = 'Stop';
-	} else {
-		symbol = '⏺';
-		text = 'Record';
-	}
-	recordButton.innerHTML = `<span>${symbol}</span><span>${text}</span>`;
+	recordButton.innerHTML = isRecording
+		? '<span>⏹</span><span>Stop</span>'
+		: '<span>⏺</span><span>Record</span>';
 }
 
 async function toggleRecord() {
@@ -94,9 +106,10 @@ async function toggleRecord() {
 			stream = await navigator.mediaDevices.getUserMedia({audio: true});
 		} catch {
 			displayAudio(null);
-			isRecording = index % 2 == 0;
+			isRecording = fileIndex % 2 == 0;
 			displayRecordButton();
 			isRecording = false;
+			console.log(autoPlay.checked);
 			return;
 		}
 		mediaRecorder = new MediaRecorder(stream);
@@ -133,7 +146,10 @@ async function reverseAudio(audioChunks) {
 	let renderedBuffer = await offlineContext.startRendering();
 	let audioSrc = URL.createObjectURL(bufferToWavBlob(renderedBuffer));
 
-	displayAudio(audioSrc).play();
+	let audio = displayAudio(audioSrc);
+	if (autoPlay.checked) {
+		audio.play();
+	}
 }
 
 function displayAudio(audioSrc) {
@@ -144,16 +160,16 @@ function displayAudio(audioSrc) {
 	audio.src = audioSrc;
 	audio.controls = true;
 	
-	container.querySelector('.time').innerText = new Date().toLocaleString("en-US", {
+	container.querySelector('.time').innerText = new Date().toLocaleString('en-US', {
 		hour: 'numeric',
 		minute: 'numeric',
 	});
 	
 	let downloadLink = container.querySelector('a');
-	let filename = `Reverse${index}.wav`;
+	let filename = `Reverse${fileIndex}.wav`;
 	downloadLink.innerText = filename;
 	downloadLink.href = audioSrc;
-	index++;
+	fileIndex++;
 	downloadLink.download = filename;
 	
 	container.querySelector('button').onclick = function() {
